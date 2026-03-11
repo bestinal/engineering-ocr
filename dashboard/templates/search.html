@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Search Parts{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Search by Part Number</h1>
+  <span class="sub">Find all drawings that contain a specific part</span>
+</div>
+
+<form method="GET" action="/search" class="search-bar">
+  <input class="search-input" type="text" name="q" value="{{ query }}"
+         placeholder="Enter part number e.g. 19220240" autofocus>
+  <button type="submit" class="btn btn-primary">Search</button>
+  {% if query %}
+    <a href="/search" class="btn btn-ghost">Clear</a>
+  {% endif %}
+</form>
+
+{% if query %}
+  {% if results %}
+  <div class="table-wrap">
+    <div class="table-header">
+      <h2>Results for "{{ query }}"</h2>
+      <span class="badge badge-comp">{{ results|length }} matches</span>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Drawing ID</th><th>Title</th><th>Part Number</th><th>Description</th><th>Qty</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in results %}
+        <tr>
+          <td class="mono">{{ r.drawing_id or '—' }}</td>
+          <td>{{ r.title or '—' }}</td>
+          <td class="mono" style="color:var(--accent2)">{{ r.part_number }}</td>
+          <td>{{ r.description or '—' }}</td>
+          <td class="mono">{{ r.quantity or '—' }}</td>
+          <td><a href="/drawing/{{ r.id }}" class="btn btn-ghost btn-sm">View →</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">🔍</div>
+    <h3>No results found</h3>
+    <p>No drawings contain part number "{{ query }}"</p>
+  </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

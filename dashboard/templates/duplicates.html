@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Duplicate Parts{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Duplicate Parts</h1>
+  <span class="sub">Part numbers appearing in 2 or more drawings — potential reuse candidates</span>
+</div>
+
+{% if dups %}
+<div class="table-wrap">
+  <div class="table-header">
+    <h2>Duplicate / Shared Parts</h2>
+    <span class="badge badge-warn">{{ dups|length }} found</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Part Number</th>
+        <th>Description</th>
+        <th>Used in # Drawings</th>
+        <th>Drawing IDs</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dup in dups %}
+      <tr>
+        <td class="mono" style="color:var(--accent2)">{{ dup.part_number }}</td>
+        <td>{{ dup.description or '—' }}</td>
+        <td><span class="badge badge-warn">{{ dup.drawing_count }}</span></td>
+        <td class="mono" style="color:var(--muted);font-size:0.75rem">{{ dup.drawing_ids }}</td>
+        <td>
+          <a href="/search?q={{ dup.part_number }}" class="btn btn-ghost btn-sm">Find →</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="icon">✅</div>
+  <h3>No duplicates found</h3>
+  <p>All extracted part numbers are unique across drawings.</p>
+</div>
+{% endif %}
+{% endblock %}

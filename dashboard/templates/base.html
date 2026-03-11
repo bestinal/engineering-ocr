@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Engineering OCR{% endblock %} — Trane | Thermo King</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0a0c0f;
+      --surface:   #111418;
+      --card:      #161b22;
+      --border:    #21262d;
+      --accent:    #e8621a;
+      --accent2:   #f0a500;
+      --text:      #e6edf3;
+      --muted:     #7d8590;
+      --success:   #3fb950;
+      --danger:    #f85149;
+      --info:      #58a6ff;
+      --mono:      'Share Tech Mono', monospace;
+      --sans:      'Barlow', sans-serif;
+      --cond:      'Barlow Condensed', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      background: var(--surface);
+      border-bottom: 2px solid var(--accent);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      height: 56px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-brand {
+      font-family: var(--cond);
+      font-weight: 900;
+      font-size: 1.2rem;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      text-decoration: none;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .nav-brand span { color: var(--text); }
+    .nav-links { display: flex; gap: 0.25rem; flex: 1; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-family: var(--cond);
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      color: var(--text);
+      background: var(--card);
+    }
+    .nav-db-badge {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--accent2);
+      padding: 0.2rem 0.6rem;
+      border-radius: 3px;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 1280px; margin: 0 auto; padding: 2rem; }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .page-header h1 {
+      font-family: var(--cond);
+      font-weight: 900;
+      font-size: 2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .page-header .sub {
+      font-family: var(--mono);
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    /* ── STAT CARDS ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--accent);
+      padding: 1.2rem 1.4rem;
+      border-radius: 6px;
+      animation: fadeUp 0.4s ease both;
+    }
+    .stat-card:nth-child(2) { border-top-color: var(--accent2); animation-delay: 0.05s; }
+    .stat-card:nth-child(3) { border-top-color: var(--info);    animation-delay: 0.1s; }
+    .stat-card:nth-child(4) { border-top-color: var(--danger);  animation-delay: 0.15s; }
+    .stat-card .label {
+      font-family: var(--cond);
+      font-weight: 700;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+    .stat-card .value {
+      font-family: var(--mono);
+      font-size: 2.2rem;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 2rem;
+      animation: fadeUp 0.5s ease both;
+    }
+    .table-header {
+      background: var(--surface);
+      padding: 0.9rem 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .table-header h2 {
+      font-family: var(--cond);
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      background: var(--surface);
+      font-family: var(--cond);
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0.7rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .mono { font-family: var(--mono); font-size: 0.8rem; }
+
+    /* ── SCORE BAR ── */
+    .score-bar { display: flex; align-items: center; gap: 0.6rem; }
+    .score-track {
+      flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden;
+    }
+    .score-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.6s ease;
+    }
+    .score-label { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); min-width: 2.5rem; text-align: right; }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 3px;
+      letter-spacing: 0.04em;
+    }
+    .badge-rev   { background: rgba(232,98,26,0.15); color: var(--accent);  border: 1px solid rgba(232,98,26,0.3); }
+    .badge-comp  { background: rgba(88,166,255,0.12); color: var(--info);   border: 1px solid rgba(88,166,255,0.25); }
+    .badge-ok    { background: rgba(63,185,80,0.12);  color: var(--success);border: 1px solid rgba(63,185,80,0.25); }
+    .badge-warn  { background: rgba(240,165,0,0.12);  color: var(--accent2);border: 1px solid rgba(240,165,0,0.25); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-family: var(--cond); font-weight: 700; font-size: 0.8rem;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 0.5rem 1rem; border-radius: 4px;
+      border: none; cursor: pointer; text-decoration: none;
+      transition: all 0.15s;
+    }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: #f07030; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+    .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.72rem; }
+
+    /* ── DETAIL SECTIONS ── */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 768px) { .detail-grid { grid-template-columns: 1fr; } }
+    .detail-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .detail-card-header {
+      background: var(--surface);
+      padding: 0.7rem 1rem;
+      font-family: var(--cond);
+      font-weight: 700;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+    }
+    .kv-list { padding: 0.5rem 0; }
+    .kv-row {
+      display: flex;
+      padding: 0.4rem 1rem;
+      gap: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .kv-row:last-child { border-bottom: none; }
+    .kv-key {
+      font-family: var(--cond); font-weight: 700; font-size: 0.72rem;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      color: var(--muted); min-width: 140px;
+    }
+    .kv-val { font-family: var(--mono); font-size: 0.8rem; color: var(--text); word-break: break-all; }
+
+    /* ── FLASH MESSAGES ── */
+    .flash-list { list-style: none; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .flash-msg {
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .flash-success { background: rgba(63,185,80,0.1);  border: 1px solid rgba(63,185,80,0.3);  color: var(--success); }
+    .flash-error   { background: rgba(248,81,73,0.1);  border: 1px solid rgba(248,81,73,0.3);  color: var(--danger); }
+    .flash-info    { background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); color: var(--info); }
+
+    /* ── UPLOAD ── */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 4rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: var(--card);
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(232,98,26,0.04);
+    }
+    .upload-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+    .upload-zone h3 { font-family: var(--cond); font-weight: 700; font-size: 1.2rem; margin-bottom: 0.5rem; }
+    .upload-zone p { color: var(--muted); font-size: 0.875rem; }
+
+    /* ── SEARCH ── */
+    .search-bar {
+      display: flex; gap: 0.5rem; margin-bottom: 2rem;
+    }
+    .search-input {
+      flex: 1; background: var(--card); border: 1px solid var(--border);
+      color: var(--text); font-family: var(--mono); font-size: 0.875rem;
+      padding: 0.6rem 1rem; border-radius: 4px; outline: none;
+      transition: border-color 0.15s;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--muted); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center; padding: 4rem 2rem; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; }
+    .empty-state h3 { font-family: var(--cond); font-weight: 700; font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    a { color: var(--info); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .link-plain { color: var(--text); }
+    .link-plain:hover { color: var(--accent); text-decoration: none; }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-brand">⚙ <span>Engineering</span> OCR</a>
+  <div class="nav-links">
+    <a href="/" class="{{ 'active' if request.endpoint == 'index' }}">Dashboard</a>
+    <a href="/upload" class="{{ 'active' if request.endpoint == 'upload' }}">Upload</a>
+    <a href="/search" class="{{ 'active' if request.endpoint == 'search' }}">Search</a>
+    <a href="/duplicates" class="{{ 'active' if request.endpoint == 'duplicates' }}">Duplicates</a>
+  </div>
+  <span class="nav-db-badge">{{ db_type if db_type else 'DB' }}</span>
+</nav>
+
+<div class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul class="flash-list">
+        {% for cat, msg in messages %}
+          <li class="flash-msg flash-{{ cat }}">{{ msg }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

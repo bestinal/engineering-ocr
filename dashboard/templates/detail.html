@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}{{ d.title or 'Drawing #' + d.id|string }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ d.title or 'Drawing #' ~ d.id }}</h1>
+    <span class="sub">Drawing ID: {{ d.drawing_id or 'N/A' }} &nbsp;|&nbsp; Rev: {{ d.current_revision or 'N/A' }} &nbsp;|&nbsp; {{ d.company or '' }}</span>
+  </div>
+  <a href="/" class="btn btn-ghost" style="margin-left:auto">← Back</a>
+</div>
+
+<!-- Score banner -->
+<div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:1rem 1.4rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:2rem;flex-wrap:wrap;">
+  <div>
+    <div style="font-family:var(--cond);font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.3rem">Accuracy Score</div>
+    <div style="font-family:var(--mono);font-size:2rem;color:{{ 'var(--success)' if d.score_pct >= 70 else 'var(--accent2)' if d.score_pct >= 40 else 'var(--danger)' }}">{{ d.score_pct }}%</div>
+  </div>
+  <div style="flex:1;min-width:200px">
+    <div class="score-track" style="height:8px">
+      <div class="score-fill" style="width:{{ d.score_pct }}%"></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:1rem;flex-wrap:wrap">
+    <span class="badge badge-rev">{{ d.revision_history|length }} revisions</span>
+    <span class="badge badge-comp">{{ d.component_list|length }} components</span>
+    <span class="badge badge-ok">Processed {{ d.processed_at[:10] if d.processed_at else '' }}</span>
+  </div>
+</div>
+
+<!-- Metadata -->
+<div class="detail-grid">
+  <div class="detail-card">
+    <div class="detail-card-header">📋 Drawing Metadata</div>
+    <div class="kv-list">
+      {% set meta_fields = [
+        ('Title',           d.title),
+        ('Drawing ID',      d.drawing_id),
+        ('Current Rev',     d.current_revision),
+        ('Drawn By',        d.drawn_by),
+        ('Checked By',      d.checked_by),
+        ('Approved By',     d.approved_by),
+        ('Date',            d.drawing_date),
+        ('Scale',           d.scale),
+        ('Sheet',           d.sheet),
+        ('Finish',          d.finish),
+        ('Material',        d.material),
+        ('Company',         d.company),
+      ] %}
+      {% for label, val in meta_fields %}
+      <div class="kv-row">
+        <div class="kv-key">{{ label }}</div>
+        <div class="kv-val">{{ val or '—' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="detail-card">
+    <div class="detail-card-header">📊 Accuracy Metrics</div>
+    <div class="kv-list">
+      {% if d.metrics %}
+      {% set m = d.metrics %}
+      {% set metric_rows = [
+        ('Metadata Completeness',     (m.metadata_completeness or 0) * 100),
+        ('Revision Row Complete',     (m.revision_row_completeness or 0) * 100),
+        ('Component Row Complete',    (m.component_row_completeness or 0) * 100),
+        ('Rev Rows Extracted',        m.revision_rows_extracted),
+        ('Comp Rows Extracted',       m.component_rows_extracted),
+        ('Parse Errors',              m.parse_errors),
+        ('Processing Time (s)',       m.processing_time_seconds),
+      ] %}
+      {% for label, val in metric_rows %}
+      <div class="kv-row">
+        <div class="kv-key">{{ label }}</div>
+        <div class="kv-val">
+          {% if '%' in label %}{{ val|round(1) }}%
+          {% else %}{{ val }}{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="kv-row"><div class="kv-val" style="color:var(--muted)">No metrics available</div></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Revision History -->
+<div class="table-wrap">
+  <div class="table-header">
+    <h2>Revision History</h2>
+    <span class="badge badge-rev">{{ d.revision_history|length }} rows</span>
+  </div>
+  {% if d.revision_history %}
+  <table>
+    <thead>
+      <tr><th>Rev</th><th>Description</th><th>Date</th><th>Approved By</th></tr>
+    </thead>
+    <tbody>
+      {% for row in d.revision_history %}
+      <tr>
+        <td><span class="badge badge-rev">{{ row.rev or '—' }}</span></td>
+        <td>{{ row.description or '—' }}</td>
+        <td class="mono" style="color:var(--muted)">{{ row.date or '—' }}</td>
+        <td style="color:var(--muted)">{{ row.approved_by or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state" style="padding:2rem">
+    <p>No revision history extracted.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Component List -->
+<div class="table-wrap">
+  <div class="table-header">
+    <h2>Component / BOM List</h2>
+    <span class="badge badge-comp">{{ d.component_list|length }} parts</span>
+  </div>
+  {% if d.component_list %}
+  <table>
+    <thead>
+      <tr><th>Item No.</th><th>Part Number</th><th>Description</th><th>Qty</th><th>Material</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      {% for row in d.component_list %}
+      <tr>
+        <td class="mono" style="color:var(--muted)">{{ row.item_no or '—' }}</td>
+        <td class="mono" style="color:var(--accent2)">{{ row.part_number or '—' }}</td>
+        <td>{{ row.description or '—' }}</td>
+        <td class="mono">{{ row.quantity or '—' }}</td>
+        <td style="color:var(--muted)">{{ row.material or '—' }}</td>
+        <td style="color:var(--muted);font-size:0.8rem">{{ row.notes or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state" style="padding:2rem">
+    <p>No component list extracted.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Other Data / Notes -->
+{% if d.other_data %}
+{% set notes = d.other_data | selectattr('data_type', 'equalto', 'note') | list %}
+{% if notes %}
+<div class="table-wrap">
+  <div class="table-header"><h2>Notes</h2></div>
+  <div style="padding:1rem 1.2rem;display:flex;flex-direction:column;gap:0.5rem">
+    {% for item in notes %}
+    <div style="font-family:var(--mono);font-size:0.8rem;color:var(--muted);padding:0.4rem 0.8rem;background:var(--surface);border-radius:3px;border-left:3px solid var(--accent)">
+      {{ item.content_json | replace('"','') }}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.addEventListener('load', () => {
+    const fill = document.querySelector('.score-fill');
+    if (fill) { const w = fill.style.width; fill.style.width='0'; setTimeout(()=>{fill.style.width=w;},150); }
+  });
+</script>
+{% endblock %}

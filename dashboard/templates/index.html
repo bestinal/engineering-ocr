@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Drawing Database</h1>
+  <span class="sub">TRANE TECHNOLOGIES / THERMO KING — OCR EXTRACTION SYSTEM</span>
+  <a href="/upload" class="btn btn-primary" style="margin-left:auto">+ Upload Drawing</a>
+</div>
+
+<!-- Stat cards -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="label">Total Drawings</div>
+    <div class="value">{{ total }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Avg Accuracy Score</div>
+    <div class="value">{{ avg_score }}<span style="font-size:1rem;color:var(--muted)">%</span></div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Duplicate Parts</div>
+    <div class="value">{{ dup_count }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Database</div>
+    <div class="value" style="font-size:1.2rem;margin-top:0.3rem">{{ db_type }}</div>
+  </div>
+</div>
+
+<!-- Drawings table -->
+<div class="table-wrap">
+  <div class="table-header">
+    <h2>All Drawings</h2>
+    {% if drawings %}
+      <span class="badge badge-comp">{{ total }} records</span>
+    {% endif %}
+  </div>
+
+  {% if drawings %}
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Title</th>
+        <th>Drawing No.</th>
+        <th>Rev</th>
+        <th>Company</th>
+        <th>Revisions</th>
+        <th>Components</th>
+        <th>Score</th>
+        <th>Processed</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in drawings %}
+      <tr>
+        <td class="mono" style="color:var(--muted)">#{{ d.id }}</td>
+        <td>
+          <a href="/drawing/{{ d.id }}" class="link-plain" style="font-weight:600">
+            {{ d.title or '—' }}
+          </a>
+        </td>
+        <td class="mono">{{ d.drawing_id or '—' }}</td>
+        <td>
+          {% if d.current_revision %}
+            <span class="badge badge-rev">{{ d.current_revision }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td style="color:var(--muted);font-size:0.8rem">{{ d.company or '—' }}</td>
+        <td><span class="badge badge-rev">{{ d.rev_count }} rows</span></td>
+        <td><span class="badge badge-comp">{{ d.comp_count }} parts</span></td>
+        <td>
+          <div class="score-bar">
+            <div class="score-track">
+              <div class="score-fill" style="width:{{ d.score_pct }}%"></div>
+            </div>
+            <div class="score-label">{{ d.score_pct }}%</div>
+          </div>
+        </td>
+        <td class="mono" style="color:var(--muted);font-size:0.72rem">
+          {{ d.processed_at[:10] if d.processed_at else '—' }}
+        </td>
+        <td>
+          <a href="/drawing/{{ d.id }}" class="btn btn-ghost btn-sm">View →</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">📂</div>
+    <h3>No drawings yet</h3>
+    <p>Upload an engineering drawing PDF to get started.</p>
+    <br>
+    <a href="/upload" class="btn btn-primary">Upload Drawing</a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Duplicate parts alert -->
+{% if dups %}
+<div class="table-wrap">
+  <div class="table-header">
+    <h2>⚠ Duplicate Parts Detected</h2>
+    <span class="badge badge-warn">{{ dups|length }} part(s)</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Part Number</th>
+        <th>Description</th>
+        <th>Appears In # Drawings</th>
+        <th>Drawing IDs</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dup in dups[:10] %}
+      <tr>
+        <td class="mono" style="color:var(--accent2)">{{ dup.part_number }}</td>
+        <td>{{ dup.description or '—' }}</td>
+        <td><span class="badge badge-warn">{{ dup.drawing_count }}</span></td>
+        <td class="mono" style="color:var(--muted);font-size:0.75rem">{{ dup.drawing_ids }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Animate score bars on load
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.score-fill').forEach(el => {
+      const w = el.style.width;
+      el.style.width = '0';
+      setTimeout(() => { el.style.width = w; }, 100);
+    });
+  });
+</script>
+{% endblock %}

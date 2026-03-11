@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Upload Drawing{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Upload Drawing</h1>
+  <span class="sub">PDF, PNG, JPG, TIFF supported — max 50 MB</span>
+</div>
+
+<form method="POST" enctype="multipart/form-data" id="uploadForm">
+  <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+    <div class="upload-icon">📄</div>
+    <h3 id="zoneTitle">Drop your drawing here or click to browse</h3>
+    <p id="zoneHint">Supports: PDF, PNG, JPG, JPEG, TIFF, BMP</p>
+    <br>
+    <input type="file" id="fileInput" name="file" accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif,.bmp"
+           style="display:none" onchange="onFileSelected(this)">
+    <span class="btn btn-primary" style="pointer-events:none" id="browseBtn">Browse Files</span>
+  </div>
+
+  <div id="fileInfo" style="display:none;margin-top:1rem;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:1rem 1.4rem">
+    <div style="font-family:var(--cond);font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem">Selected File</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+      <div>
+        <div id="fileName" style="font-family:var(--mono);font-size:0.9rem"></div>
+        <div id="fileSize" style="color:var(--muted);font-size:0.8rem;margin-top:0.2rem"></div>
+      </div>
+      <button type="submit" class="btn btn-primary" id="submitBtn">
+        ⚙ Process Drawing
+      </button>
+    </div>
+  </div>
+</form>
+
+<div style="margin-top:2rem;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:1.4rem">
+  <div style="font-family:var(--cond);font-weight:700;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:1rem">What gets extracted</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem">
+    {% for item in [
+      ('📋 Drawing Metadata', 'Title, Drawing ID, Revision, Drawn/Checked/Approved by, Scale, Sheet'),
+      ('🔄 Revision History', 'All revision rows with description, date, approver'),
+      ('🔩 Component List', 'Full BOM: item no, part number, description, quantity, material'),
+      ('📝 Other Data', 'Notes, tolerances, raw text blocks'),
+    ] %}
+    <div style="padding:0.8rem;background:var(--surface);border-radius:4px;border:1px solid var(--border)">
+      <div style="font-size:1.2rem;margin-bottom:0.4rem">{{ item[0].split(' ')[0] }}</div>
+      <div style="font-family:var(--cond);font-weight:700;font-size:0.8rem;margin-bottom:0.3rem">{{ item[0][2:] }}</div>
+      <div style="color:var(--muted);font-size:0.78rem">{{ item[1] }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function onFileSelected(input) {
+    if (!input.files.length) return;
+    const file = input.files[0];
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+    document.getElementById('fileInfo').style.display = 'block';
+    document.getElementById('zoneTitle').textContent = '✓ File ready';
+    document.getElementById('dropZone').style.borderColor = 'var(--success)';
+  }
+
+  // Drag and drop
+  const zone = document.getElementById('dropZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const dt = e.dataTransfer;
+    if (dt.files.length) {
+      document.getElementById('fileInput').files = dt.files;
+      onFileSelected(document.getElementById('fileInput'));
+    }
+  });
+
+  // Show spinner on submit
+  document.getElementById('uploadForm').addEventListener('submit', () => {
+    const btn = document.getElementById('submitBtn');
+    btn.textContent = '⏳ Processing...';
+    btn.disabled = true;
+  });
+</script>
+{% endblock %}

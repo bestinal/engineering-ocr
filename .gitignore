@@ -1,0 +1,9 @@
+echo "__pycache__/
+*.pyc
+*.db
+output/
+sample_input/
+*_pages/
+.env
+*.egg-info/
+.vscode/" > .gitignore
