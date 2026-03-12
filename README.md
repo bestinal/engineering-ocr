@@ -5,7 +5,7 @@
 
 ## Project Overview
 
-This tool uses **Claude Vision AI** (OCR + LLM) to extract structured information from engineering drawing PDFs/images:
+This tool uses **free, open-source OCR** (PyMuPDF + Tesseract) to extract structured information from engineering drawing PDFs/images:
 
 | Extracted Section | Fields |
 |---|---|
@@ -14,7 +14,7 @@ This tool uses **Claude Vision AI** (OCR + LLM) to extract structured informatio
 | **Component List** | Item No, Part Number, Description, Quantity, Material, Notes |
 | **Other Data** | Notes, Tables, Tolerances, Raw text blocks |
 
-All data is stored in a **SQLite RDBMS** (swappable to PostgreSQL/MySQL).
+All data is stored in **SQLite** by default (swappable to MySQL via environment variable).
 
 ---
 
@@ -23,9 +23,12 @@ All data is stored in a **SQLite RDBMS** (swappable to PostgreSQL/MySQL).
 ```
 engineering_ocr/
 ├── src/
-│   ├── extractor.py     # PDF→image conversion + Claude Vision extraction
-│   ├── database.py      # SQLite RDBMS storage + query helpers
+│   ├── extractor.py     # PDF→image conversion + Tesseract OCR + regex parsing
+│   ├── database.py      # SQLite/MySQL storage + query helpers
 │   └── pipeline.py      # End-to-end pipeline + CLI dashboard
+├── dashboard/
+│   ├── app.py           # Flask web dashboard
+│   └── templates/       # Jinja2 HTML templates
 ├── tests/
 │   └── test_extractor.py  # Unit tests (pytest)
 ├── output/              # JSON results + SQLite DB (auto-created)
@@ -37,21 +40,40 @@ engineering_ocr/
 
 ## Setup
 
-### 1. Install dependencies
+### 1. Install Python dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Set your Anthropic API key
+### 2. Install Tesseract OCR binary
 ```bash
-# Windows
-set ANTHROPIC_API_KEY=sk-ant-...
+# Ubuntu / Debian
+sudo apt install tesseract-ocr
 
-# Mac/Linux
-export ANTHROPIC_API_KEY=sk-ant-...
+# macOS (Homebrew)
+brew install tesseract
+
+# Windows — download installer from:
+# https://github.com/UB-Mannheim/tesseract/wiki
 ```
 
-Get your API key from: https://console.anthropic.com/
+### 3. Configure database (optional)
+
+By default the tool uses **SQLite** (`output/engineering_drawings.db`).  
+To switch to MySQL, set environment variables before running:
+
+```bash
+export DB_TYPE=mysql
+export MYSQL_HOST=localhost
+export MYSQL_USER=root
+export MYSQL_PASSWORD=your_password
+export MYSQL_DATABASE=engineering_ocr
+```
+
+To set a custom SQLite file path:
+```bash
+export SQLITE_PATH=/path/to/my.db
+```
 
 ---
 
@@ -142,8 +164,10 @@ dups = find_duplicate_parts()
 
 ## Model & Approach
 
-- **Pre-processing**: PyMuPDF converts PDF pages to 200 DPI PNG images
-- **OCR Model**: Claude claude-opus-4-5 Vision (multimodal) — reads the drawing image and returns structured JSON
-- **Post-processing**: Pages merged, deduplicated, stored in SQLite
-- **Processing time**: ~5–15 seconds per page depending on drawing complexity
-- **Scalability**: Batch folder processing supported; can parallelize with `concurrent.futures`
+- **Pre-processing**: PyMuPDF converts PDF pages to 300 DPI grayscale PNG images; Pillow applies contrast enhancement and sharpening
+- **OCR Engine**: Tesseract OCR (PSM 6, OEM 3) — reads the preprocessed image and outputs raw text
+- **Parsing**: Regex patterns extract structured fields from the raw OCR text (metadata, revisions, components)
+- **Fallback**: If the PDF has a native text layer, that is used directly without running Tesseract
+- **Post-processing**: Pages merged, duplicate rows deduplicated, results stored in SQLite/MySQL
+- **Processing time**: ~1–10 seconds per page depending on drawing complexity
+- **Scalability**: Batch folder processing supported

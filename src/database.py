@@ -6,24 +6,25 @@ Switch by setting DB_TYPE = "mysql" or "sqlite"
 """
 
 import json
+import os
 from pathlib import Path
 from datetime import datetime
 
 # ─────────────────────────────────────────────
-# CONFIG — Change these to match your MySQL Workbench
+# CONFIG — Override via environment variables or edit below
 # ─────────────────────────────────────────────
 
-DB_TYPE = "mysql"   # "sqlite" or "mysql"
+DB_TYPE = os.environ.get("DB_TYPE", "sqlite")   # "sqlite" or "mysql"
 
 MYSQL_CONFIG = {
-    "host":     "localhost",      # MySQL Workbench host (usually localhost)
-    "port":     3306,             # Default MySQL port
-    "user":     "root",           # Your MySQL username
-    "password": "Aditya@9386",  # Your MySQL password
-    "database": "engineering_ocr" # DB name (auto-created if not exists)
+    "host":     os.environ.get("MYSQL_HOST", "localhost"),
+    "port":     int(os.environ.get("MYSQL_PORT", "3306")),
+    "user":     os.environ.get("MYSQL_USER", "root"),
+    "password": os.environ.get("MYSQL_PASSWORD", ""),
+    "database": os.environ.get("MYSQL_DATABASE", "engineering_ocr"),
 }
 
-SQLITE_PATH = "output/engineering_drawings.db"
+SQLITE_PATH = os.environ.get("SQLITE_PATH", "output/engineering_drawings.db")
 
 
 # ─────────────────────────────────────────────
@@ -164,10 +165,13 @@ MYSQL_SCHEMA = [
 # ─────────────────────────────────────────────
 
 def get_connection(db_type: str = None):
-    """Return a DB connection. db_type = 'mysql' or 'sqlite'."""
+    """Return a DB connection. db_type = 'mysql', 'sqlite', or a custom SQLite file path."""
     db_type = db_type or DB_TYPE
     if db_type == "mysql":
         return _get_mysql_connection()
+    # If db_type looks like a file path rather than the keyword "sqlite", use it as a custom path.
+    if db_type != "sqlite":
+        return _get_sqlite_connection(path=db_type)
     return _get_sqlite_connection()
 
 
@@ -178,6 +182,15 @@ def _get_mysql_connection():
         raise ImportError(
             "\nmysql-connector-python not installed.\n"
             "Run:  pip install mysql-connector-python\n"
+        )
+
+    if not MYSQL_CONFIG.get("password"):
+        import warnings
+        warnings.warn(
+            "MYSQL_PASSWORD environment variable is not set. "
+            "MySQL connections may fail unless the account has no password.",
+            UserWarning,
+            stacklevel=3,
         )
 
     # Connect without specifying DB first, so we can create it if needed
@@ -195,10 +208,11 @@ def _get_mysql_connection():
     return conn
 
 
-def _get_sqlite_connection():
+def _get_sqlite_connection(path: str = None):
     import sqlite3
-    Path(SQLITE_PATH).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(SQLITE_PATH)
+    db_path = path or SQLITE_PATH
+    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.executescript(SQLITE_SCHEMA)
     conn.commit()

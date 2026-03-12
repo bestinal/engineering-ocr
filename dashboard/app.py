@@ -28,7 +28,7 @@ from extractor import process_file, compute_accuracy_metrics
 
 # ─────────────────────────────────────────────
 app = Flask(__name__)
-app.secret_key = "trane_ocr_secret_2024"
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "trane_ocr_secret_2024")
 
 UPLOAD_FOLDER = Path(__file__).parent.parent / "sample_input"
 OUTPUT_FOLDER = Path(__file__).parent.parent / "output"
@@ -56,7 +56,6 @@ def index():
     # Summary stats
     total = len(drawings)
     avg_score = (sum(d["overall_score"] or 0 for d in drawings) / total * 100) if total else 0
-    total_components = sum(d.get("component_list_count", 0) for d in drawings)
 
     # Enrich with counts
     for d in drawings:

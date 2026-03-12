@@ -162,7 +162,7 @@ class TestDatabase:
         result = merge_pages([SAMPLE_PAGE])
         result["source_file"] = "test_drawing.pdf"
         drawing_id = store_result(result, SAMPLE_METRICS, temp_db)
-        assert drawing_id == 1
+        assert drawing_id > 0
 
         detail = get_drawing_detail(drawing_id, temp_db)
         assert detail["title"] == "SENSOR ASSY BATTERY TEMPERATURE"

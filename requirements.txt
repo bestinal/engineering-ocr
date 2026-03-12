@@ -1,0 +1,6 @@
+pymupdf
+pillow
+pytesseract
+flask
+mysql-connector-python
+pytest

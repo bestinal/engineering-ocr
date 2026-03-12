@@ -11,14 +11,13 @@ from extractor import process_file, process_folder
 from database import store_result, get_all_drawings, find_duplicate_parts
 
 
-def run_pipeline(input_path: str, out_dir: str = "output",
-                 api_key: str = None, store_db: bool = True):
+def run_pipeline(input_path: str, out_dir: str = "output", store_db: bool = True):
     """End-to-end: extract then optionally store in DB."""
     p = Path(input_path)
     if p.is_dir():
-        results = process_folder(str(p), out_dir, api_key)
+        results = process_folder(str(p), out_dir)
     else:
-        result, metrics = process_file(str(p), out_dir, api_key)
+        result, metrics = process_file(str(p), out_dir)
         results = [{"file": str(p), "result": result, "metrics": metrics}]
 
     if store_db:
@@ -29,9 +28,9 @@ def run_pipeline(input_path: str, out_dir: str = "output",
     return results
 
 
-def print_dashboard(db_path: str = "output/engineering_drawings.db"):
+def print_dashboard():
     """Print a quick summary of all stored drawings."""
-    drawings = get_all_drawings(db_path)
+    drawings = get_all_drawings()
     if not drawings:
         print("No drawings in database yet.")
         return
@@ -48,7 +47,7 @@ def print_dashboard(db_path: str = "output/engineering_drawings.db"):
               f"{d['overall_score']:.0%}    "
               f"{d['company'] or 'N/A'}")
 
-    dups = find_duplicate_parts(db_path)
+    dups = find_duplicate_parts()
     if dups:
         print(f"\n{'─'*70}")
         print(f"  DUPLICATE PARTS DETECTED ({len(dups)} part numbers appear in 2+ drawings)")
@@ -66,13 +65,12 @@ if __name__ == "__main__":
     parser.add_argument("input", nargs="?", help="File or folder to process")
     parser.add_argument("--out", default="output")
     parser.add_argument("--no-db", action="store_true", help="Skip database storage")
-    parser.add_argument("--api-key", default=None)
     args = parser.parse_args()
 
     if args.command == "extract":
         if not args.input:
             print("Please provide an input file or folder.")
         else:
-            run_pipeline(args.input, args.out, args.api_key, store_db=not args.no_db)
+            run_pipeline(args.input, args.out, store_db=not args.no_db)
     elif args.command == "dashboard":
         print_dashboard()
