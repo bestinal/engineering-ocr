@@ -101,7 +101,9 @@ def upload():
 
         try:
             flash(f"Processing '{filename}'... this may take a moment.", "info")
-            result, metrics = process_file(str(save_path), str(OUTPUT_FOLDER))
+            use_dynamic_scan = request.form.get("dynamic_scan") == "1"
+            result, metrics = process_file(str(save_path), str(OUTPUT_FOLDER),
+                                           use_dynamic_scan=use_dynamic_scan)
             drawing_id = store_result(result, metrics)
             flash(f"✓ '{filename}' extracted successfully! Drawing ID: {drawing_id}", "success")
             return redirect(url_for("drawing_detail", drawing_id=drawing_id))

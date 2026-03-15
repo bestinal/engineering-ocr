@@ -9,7 +9,9 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../src"))
 
 import pytest
-from extractor import merge_pages, compute_accuracy_metrics
+from extractor import (merge_pages, compute_accuracy_metrics,
+                       _find_section_anchors, _is_standard_layout,
+                       _STANDARD_ZONES, dynamic_scan)
 from database import get_connection, store_result, get_drawing_detail, find_duplicate_parts
 
 
@@ -192,3 +194,157 @@ class TestDatabase:
         detail = get_drawing_detail(drawing_id, temp_db)
         assert detail["metrics"]["overall_score"] == 1.0
         assert detail["metrics"]["revision_rows_extracted"] == 4
+
+
+# ─────────────────────────────────────────────
+# Tests: dynamic layout scan
+# ─────────────────────────────────────────────
+
+class TestDynamicScan:
+    """Tests for the pure-Python layout detection helpers.
+
+    These tests do NOT require PIL, Tesseract, or a real image file because
+    they exercise only the functions that operate on already-parsed word lists
+    and numeric coordinates.
+    """
+
+    # ── _find_section_anchors ─────────────────
+
+    def test_find_section_anchors_empty_words(self):
+        """Empty word list → no anchors detected."""
+        assert _find_section_anchors([]) == {}
+
+    def test_find_section_anchors_revision(self):
+        """'REVISION HISTORY' header words are detected correctly."""
+        words = [
+            {"text": "REVISION", "left": 600, "top": 50, "width": 80, "height": 12},
+            {"text": "HISTORY",  "left": 690, "top": 50, "width": 70, "height": 12},
+        ]
+        anchors = _find_section_anchors(words)
+        assert "revision_history" in anchors
+        ax, ay = anchors["revision_history"]
+        assert ax == 600          # leftmost word in the row
+        assert ay == 40           # bucket: (50 // 20) * 20
+
+    def test_find_section_anchors_component_list(self):
+        """'LIST OF MATERIAL' is mapped to component_list."""
+        words = [
+            {"text": "LIST",     "left": 30,  "top": 200, "width": 40, "height": 12},
+            {"text": "OF",       "left": 75,  "top": 200, "width": 20, "height": 12},
+            {"text": "MATERIAL", "left": 100, "top": 200, "width": 80, "height": 12},
+        ]
+        anchors = _find_section_anchors(words)
+        assert "component_list" in anchors
+
+    def test_find_section_anchors_metadata(self):
+        """'DRAWING NO' is mapped to metadata."""
+        words = [
+            {"text": "DRAWING", "left": 550, "top": 700, "width": 70, "height": 12},
+            {"text": "NO",      "left": 625, "top": 700, "width": 25, "height": 12},
+        ]
+        anchors = _find_section_anchors(words)
+        assert "metadata" in anchors
+
+    def test_find_section_anchors_multiple_sections(self):
+        """Multiple sections in one word list are all found."""
+        words = [
+            # revision_history at top-right
+            {"text": "REVISION",  "left": 600, "top": 50,  "width": 80, "height": 12},
+            {"text": "HISTORY",   "left": 690, "top": 50,  "width": 70, "height": 12},
+            # component_list on left
+            {"text": "LIST",      "left": 30,  "top": 200, "width": 40, "height": 12},
+            {"text": "OF",        "left": 75,  "top": 200, "width": 20, "height": 12},
+            {"text": "MATERIAL",  "left": 100, "top": 200, "width": 80, "height": 12},
+            # metadata at bottom-right
+            {"text": "DRAWING",   "left": 550, "top": 700, "width": 70, "height": 12},
+            {"text": "NO",        "left": 625, "top": 700, "width": 25, "height": 12},
+        ]
+        anchors = _find_section_anchors(words)
+        assert "revision_history" in anchors
+        assert "component_list"   in anchors
+        assert "metadata"         in anchors
+
+    def test_find_section_anchors_first_match_wins(self):
+        """When the same keyword appears twice, the topmost row is used."""
+        words = [
+            {"text": "REVISION", "left": 600, "top": 50,  "width": 80, "height": 12},
+            {"text": "HISTORY",  "left": 690, "top": 50,  "width": 70, "height": 12},
+            {"text": "REVISION", "left": 600, "top": 400, "width": 80, "height": 12},
+            {"text": "HISTORY",  "left": 690, "top": 400, "width": 70, "height": 12},
+        ]
+        anchors = _find_section_anchors(words)
+        _, ay = anchors["revision_history"]
+        assert ay == 40   # first (topmost) occurrence wins
+
+    # ── _is_standard_layout ──────────────────
+
+    def test_is_standard_layout_empty_anchors(self):
+        """No anchors found → treated as standard (no evidence of non-standard)."""
+        assert _is_standard_layout({}, 1000, 800) is True
+
+    def test_is_standard_layout_revision_at_standard_position(self):
+        """Revision header in the expected upper-right zone → standard."""
+        # Standard zone for revision_history: x: 55-100%, y: 0-55%
+        # Anchor at x=600 (60%), y=80 (10%) on a 1000×800 image → in zone.
+        anchors = {"revision_history": (600, 80)}
+        assert _is_standard_layout(anchors, 1000, 800) is True
+
+    def test_is_standard_layout_revision_at_nonstandard_position(self):
+        """Revision header at bottom-left → not standard."""
+        anchors = {"revision_history": (50, 700)}
+        assert _is_standard_layout(anchors, 1000, 800) is False
+
+    def test_is_standard_layout_metadata_at_standard_position(self):
+        """Metadata header in expected bottom-right zone → standard."""
+        # Standard zone for metadata: x: 45-100%, y: 65-100%
+        # Anchor at x=550 (55%), y=700 (87.5%) on 1000×800 → in zone.
+        anchors = {"metadata": (550, 700)}
+        assert _is_standard_layout(anchors, 1000, 800) is True
+
+    def test_is_standard_layout_metadata_at_top_is_nonstandard(self):
+        """Metadata header at the very top → not at its standard bottom position."""
+        anchors = {"metadata": (550, 10)}
+        assert _is_standard_layout(anchors, 1000, 800) is False
+
+    def test_is_standard_layout_all_standard(self):
+        """All four sections at expected positions → standard."""
+        anchors = {
+            "metadata":         (550, 700),   # bottom-right
+            "revision_history": (600, 80),    # upper-right
+            "component_list":   (30,  50),    # left
+            "other_data":       (30,  600),   # lower-left
+        }
+        assert _is_standard_layout(anchors, 1000, 800) is True
+
+    def test_is_standard_layout_one_section_misplaced(self):
+        """If even one section is out of place, the layout is non-standard."""
+        anchors = {
+            "metadata":         (550, 700),
+            "revision_history": (50,  700),   # bottom-left ← non-standard
+        }
+        assert _is_standard_layout(anchors, 1000, 800) is False
+
+    # ── _STANDARD_ZONES completeness ─────────
+
+    def test_standard_zones_cover_all_parseable_sections(self):
+        """Every section that has a parser also has a standard zone defined."""
+        parseable = {"metadata", "revision_history", "component_list", "other_data"}
+        assert parseable == set(_STANDARD_ZONES.keys())
+
+    # ── dynamic_scan dependency check ────────
+
+    def test_dynamic_scan_returns_empty_when_no_dependencies(self, monkeypatch):
+        """dynamic_scan returns {} when PIL or Tesseract is unavailable."""
+        import extractor
+        monkeypatch.setattr(extractor, "HAS_PIL", False)
+        result = extractor.dynamic_scan("dummy_path.png")
+        assert result == {}
+
+    def test_dynamic_scan_returns_empty_when_image_not_found(self, monkeypatch):
+        """dynamic_scan returns {} when the image file cannot be opened."""
+        import extractor
+        # Ensure PIL is reported available so we reach the Image.open() call
+        monkeypatch.setattr(extractor, "HAS_PIL", True)
+        monkeypatch.setattr(extractor, "HAS_TESSERACT", True)
+        result = extractor.dynamic_scan("/nonexistent/path/drawing.png")
+        assert result == {}

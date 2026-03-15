@@ -11,13 +11,14 @@ from extractor import process_file, process_folder
 from database import store_result, get_all_drawings, find_duplicate_parts
 
 
-def run_pipeline(input_path: str, out_dir: str = "output", store_db: bool = True):
+def run_pipeline(input_path: str, out_dir: str = "output",
+                 store_db: bool = True, use_dynamic_scan: bool = True):
     """End-to-end: extract then optionally store in DB."""
     p = Path(input_path)
     if p.is_dir():
-        results = process_folder(str(p), out_dir)
+        results = process_folder(str(p), out_dir, use_dynamic_scan=use_dynamic_scan)
     else:
-        result, metrics = process_file(str(p), out_dir)
+        result, metrics = process_file(str(p), out_dir, use_dynamic_scan=use_dynamic_scan)
         results = [{"file": str(p), "result": result, "metrics": metrics}]
 
     if store_db:
@@ -65,12 +66,16 @@ if __name__ == "__main__":
     parser.add_argument("input", nargs="?", help="File or folder to process")
     parser.add_argument("--out", default="output")
     parser.add_argument("--no-db", action="store_true", help="Skip database storage")
+    parser.add_argument("--no-dynamic-scan", action="store_true",
+                        help="Disable dynamic layout scan (use full-page OCR only)")
     args = parser.parse_args()
 
     if args.command == "extract":
         if not args.input:
             print("Please provide an input file or folder.")
         else:
-            run_pipeline(args.input, args.out, store_db=not args.no_db)
+            run_pipeline(args.input, args.out,
+                         store_db=not args.no_db,
+                         use_dynamic_scan=not args.no_dynamic_scan)
     elif args.command == "dashboard":
         print_dashboard()

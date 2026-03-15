@@ -171,3 +171,41 @@ dups = find_duplicate_parts()
 - **Post-processing**: Pages merged, duplicate rows deduplicated, results stored in SQLite/MySQL
 - **Processing time**: ~1–10 seconds per page depending on drawing complexity
 - **Scalability**: Batch folder processing supported
+
+---
+
+## Dynamic Layout Scan
+
+Engineering drawings sometimes have sections (title block, revision history, parts list, notes) at **non-standard positions**. Standard regex parsing on a full-page OCR blob can mis-identify or miss those sections entirely.
+
+The **dynamic layout scan** (enabled by default) adds an automatic detection pass:
+
+| Step | What happens |
+|---|---|
+| **1. Detect anchors** | Tesseract `image_to_data` is called to get word-level bounding boxes. Section headers (`REVISION HISTORY`, `LIST OF MATERIAL`, `DRAWING NO`, etc.) are located on the image. |
+| **2. Check standard layout** | Each detected header is tested against its expected standard zone (ANSI/ISO conventions). If **all** headers are within their expected zones (±20 % tolerance), the drawing is a standard layout. |
+| **3a. Standard layout** | Skip region cropping — use the fast, existing full-page OCR path unchanged. |
+| **3b. Non-standard layout** | Crop each section's region and run a separate, focused OCR pass on it. For any section whose header was not detected, the full-page text is used as a fallback so no data is lost. |
+
+### Standard zone definitions
+
+| Section | Expected position |
+|---|---|
+| Drawing metadata / title block | Bottom-right quadrant (x > 45 %, y > 65 %) |
+| Revision history | Upper-right (x > 55 %, y < 55 %) |
+| Component / BOM list | Left-to-centre strip (x < 55 %) |
+| Notes / other data | Lower area (y > 55 %) |
+
+### CLI usage
+
+```bash
+# Dynamic scan is ON by default
+python pipeline.py extract ../sample_input/drawing.pdf
+
+# Disable when you know the drawing is already standard (faster)
+python pipeline.py extract ../sample_input/drawing.pdf --no-dynamic-scan
+```
+
+### Web dashboard
+
+When uploading a drawing via the web dashboard, a **"Dynamic layout scan"** checkbox is shown. It is checked (enabled) by default.
